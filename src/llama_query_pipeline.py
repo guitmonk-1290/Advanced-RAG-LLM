@@ -12,7 +12,7 @@ from langchain.callbacks.streaming_stdout import (
     StreamingStdOutCallbackHandler,
 )  # for streaming resposne
 
-from schema_objects import table_schema_objs
+from .schema_objects import table_schema_objs
 from typing import List
 from llama_index.llms.ollama import Ollama
 from llama_index.core.objects import SQLTableNodeMapping, ObjectIndex, SQLTableSchema
@@ -30,11 +30,12 @@ from sqlalchemy import create_engine, MetaData, text
 
 from llama_index.core.schema import TextNode
 from llama_index.core.storage import StorageContext
-from utils import connect_to_DB, execute_query
+from .utils import connect_to_DB, execute_query
 import ollama
 
 
 class QueryExecutor:
+
     def __init__(self, db_config):
         # Callbacks support token-wise streaming
         self.callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
