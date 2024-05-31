@@ -18,8 +18,8 @@ def connect_to_DB(db_config):
     try:
         connection = sql.connect(**db_config)
         return connection
-    except Exception as e:
-        raise Exception(f"Error connecting to DB: {e}")
+    except sql.Error as e:
+        raise Exception(f"Error connecting to DB: {e}") from e
 
 
 def execute_query(connection, query):
@@ -58,5 +58,5 @@ def execute_query(connection, query):
 
         cursor.close()
         return formatted_results
-    except Exception as e:
-        raise Exception(f"Error executing query: {e}")
+    except sql.Error as e:
+        raise Exception(f"Error executing query: {e}") from e

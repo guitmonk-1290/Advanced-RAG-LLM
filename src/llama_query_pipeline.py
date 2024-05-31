@@ -7,7 +7,6 @@ os.environ["HF_HOME"] = "model/"
 from pathlib import Path
 from typing import Dict
 
-from langchain_community.llms import LlamaCpp
 from langchain.callbacks.manager import CallbackManager
 from langchain.callbacks.streaming_stdout import (
     StreamingStdOutCallbackHandler,
@@ -19,8 +18,6 @@ from llama_index.llms.ollama import Ollama
 from llama_index.core.objects import SQLTableNodeMapping, ObjectIndex, SQLTableSchema
 from llama_index.core import (
     VectorStoreIndex,
-    load_index_from_storage,
-    SimpleDirectoryReader,
 )
 from llama_index.core import SQLDatabase
 from llama_index.core import Settings
@@ -33,7 +30,6 @@ from sqlalchemy import create_engine, MetaData, text
 
 from llama_index.core.schema import TextNode
 from llama_index.core.storage import StorageContext
-from llama_index.core.objects import ObjectIndex
 from utils import connect_to_DB, execute_query
 import ollama
 
@@ -77,7 +73,6 @@ class QueryExecutor:
             print(
                 "[INFO] Found existing indexes. Loading from disk...\nNote: Delete the indexes directory to create new indexes\n"
             )
-            storage_context = StorageContext.from_defaults(persist_dir="indexes")
             # load index
             self.obj_index = ObjectIndex.from_persist_dir(
                 "indexes", self.table_node_mapping
@@ -85,6 +80,9 @@ class QueryExecutor:
 
         self.obj_retriever = self.obj_index.as_retriever(similarity_top_k=1)
         self.sql_connection = connect_to_DB(db_config)
+        self.storage_context = None
+        self.service_context = None
+        self.vector_index_dict = None
 
         self.SQLQuery = ""
 
@@ -149,7 +147,7 @@ class QueryExecutor:
         return vector_index_dict
 
     def get_table_context_and_rows_str(
-        self, query_str: str, table_schema_objs: List[SQLTableSchema]
+        self, table_schema_objects: List[SQLTableSchema]
     ):
         """Get table context string."""
         context_strs = ""
@@ -157,7 +155,7 @@ class QueryExecutor:
         metadata.reflect(bind=self.engine)
 
         # table_info = f"These are the table schemas for 2 tables named {table_schema_objs[0].table_name} and {table_schema_objs[1].table_name}\n"
-        for table_schema_obj in table_schema_objs:
+        for table_schema_obj in table_schema_objects:
             table = metadata.tables[table_schema_obj.table_name]
             columns = table.columns
 
@@ -186,10 +184,10 @@ class QueryExecutor:
         # return "\n\n".join(context_strs)
         return context_strs
 
-    def get_table_context_str(self, table_schema_objs: List[SQLTableSchema]):
+    def get_table_context_str(self, table_schema_objects: List[SQLTableSchema]):
         """Get table context string"""
         context_strs = []
-        for table_schema_obj in table_schema_objs:
+        for table_schema_obj in table_schema_objects:
             table_info = self.sql_database.get_single_table_info(
                 table_schema_obj.table_name
             )
@@ -233,12 +231,12 @@ class QueryExecutor:
         )
         self.vector_index_dict = self.index_all_tables()
 
-        table_schema_objs = self.obj_retriever.retrieve(query)
-        for table in table_schema_objs:
+        table_schema_objects = self.obj_retriever.retrieve(query)
+        for table in table_schema_objects:
             print(f"[matched_table]: {table.table_name}")
 
         context_str = self.get_table_context_and_rows_str(
-            query_str=query, table_schema_objs=table_schema_objs
+            table_schema_objects=table_schema_objects
         )
         context_str += f"According to this table schema, write a syntactically correct SQL query as mentioned in the following query and do not make up any information. ONLY write the SQL query and nothing else. query: '{query}'"
         print(f"[LLM_CONTEXT_STR]: {context_str}")
@@ -259,7 +257,7 @@ class QueryExecutor:
         sql_res = execute_query(self.sql_connection, sql_parsed)
         print(f"[SQL_RES]: {sql_res}")
 
-        response_synthesis_prompt_str_system = f"""
+        response_synthesis_prompt_str_system = """
 You are a chatbot that takes an input question about a database and responds to the input question in natural language. 
 Given an input question and the SQL result for that question from a SQL database, combine the input and the SQL result into a concise single-line natural language response to answer the input question and DO NOT make up any information.
 Follow these guidelines to generate your response:
@@ -269,11 +267,11 @@ Follow these guidelines to generate your response:
 Here are some relevant examples:
 
 Input Question: what is the status of ticket with id '4556'
-SQL result: [{{"status": "2"}}]
+SQL result: [{"status": "2"}]
 AI response: The status of the ticket is '2'.
 
 Input Question: what is the incident date of ticket with id '4556'
-SQL result: [{{"incident_date": "2024-03-05"}}]
+SQL result: [{"incident_date": "2024-03-05"}]
 AI response: The incident date of the ticket is "2024-03-05"
 """
 
@@ -297,7 +295,7 @@ SQL result: {sql_res if len(sql_res) else 'There is no such result in the databa
             keep_alive=True,
         )
 
-        response_parsed = self.parse_nl_response(response["message"]["content"])
+        # response_parsed = self.parse_nl_response(response["message"]["content"])
         print(f"[NL_RESPONSE]: {response['message']['content']}")
 
         print(f"EXECUTION FINISHED AT {datetime.datetime.now()}")
