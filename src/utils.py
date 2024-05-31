@@ -1,6 +1,7 @@
 import mysql.connector as sql
 import datetime
 
+
 def connect_to_DB(db_config):
     """Connects to a SQL database using provided configuration.
 
@@ -20,6 +21,7 @@ def connect_to_DB(db_config):
     except Exception as e:
         raise Exception(f"Error connecting to DB: {e}")
 
+
 def execute_query(connection, query):
     """Executes a SQL query and returns the results.
 
@@ -37,14 +39,18 @@ def execute_query(connection, query):
         cursor = connection.cursor(dictionary=True)
         cursor.execute(query)
         results = cursor.fetchall()
-        
+
         # Get column names from cursor description
         columns = [col[0] for col in cursor.description]
-        
+
         # Format the results
         formatted_results = [
             {
-                columns[i]: (value.strftime('%Y-%m-%d') if isinstance(value, (datetime.datetime,datetime.date)) else value)
+                columns[i]: (
+                    value.strftime("%Y-%m-%d")
+                    if isinstance(value, (datetime.datetime, datetime.date))
+                    else value
+                )
                 for i, value in enumerate(row.values())
             }
             for row in results
