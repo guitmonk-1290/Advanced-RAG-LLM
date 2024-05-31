@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from llama_query_pipeline import QueryExecutor
+from src.llama_query_pipeline import QueryExecutor
 import uvicorn
 
 app = FastAPI()
