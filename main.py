@@ -1,16 +1,23 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from pydantic import BaseModel
+<<<<<<< HEAD
 from typing import List
+=======
+>>>>>>> e34d810f1dcf300c275d1a5d5458e595639f1eb3
 from src.llama_query_pipeline import QueryExecutor
 import uvicorn
 
 app = FastAPI()
 
+<<<<<<< HEAD
 _cache = {}
+=======
+>>>>>>> e34d810f1dcf300c275d1a5d5458e595639f1eb3
 
 class InputText(BaseModel):
     inputText: str
 
+<<<<<<< HEAD
 class QueryParams(BaseModel):
     inputText: str
     choosen_tables: List[str]
@@ -29,12 +36,15 @@ def get_shared_instance():
     if cache_key not in _cache:
         _cache[cache_key] = QueryExecutor(db_config=db_config)
     return _cache[cache_key]
+=======
+>>>>>>> e34d810f1dcf300c275d1a5d5458e595639f1eb3
 
 @app.get("/")
 async def base():
     return {"status": 200}
 
 
+<<<<<<< HEAD
 @app.post("/tables", response_model=dict, status_code=200)
 async def tables(
     inputText: InputText,
@@ -86,6 +96,21 @@ async def process_text(inputText: InputText):
         })
         sql, response, = query_executor.run(query=inputText.inputText)
         return {"SQLQuery": sql, "response": response}
+=======
+@app.post("/process-text", response_model=dict, status_code=200)
+async def process_text(inputText: InputText):
+    try:
+        query_executor = QueryExecutor(
+            db_config={
+                "host": "<host>",
+                "user": "<username>",
+                "password": "<password>",
+                "database": "<db_name>",
+            }
+        )
+        sql, response, sql_res = query_executor.run(query=inputText.inputText)
+        return {"SQLQuery": sql, "response": response, "SQLResult": sql_res}
+>>>>>>> e34d810f1dcf300c275d1a5d5458e595639f1eb3
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
