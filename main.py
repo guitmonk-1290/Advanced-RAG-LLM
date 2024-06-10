@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List
 from src.llama_query_pipeline import QueryExecutor
@@ -20,9 +20,9 @@ def get_shared_instance():
     # Later set up the db_config object dynamically
     db_config = {
         "host": "127.0.0.1",
-        "user": "<username>",
-        "password": "<password>",
-        "database": "<db_name>"
+        "user": "arinxd",
+        "password": "eatdatass",
+        "database": "spectra"
     }
 
     cache_key = tuple(db_config.items())  # Create key based on dictionary items
@@ -67,9 +67,9 @@ async def response(
         setted_tables = query_executor.get_setted_tables()
         schema_tables = [table for table in setted_tables if table.table_name in choosen_tables]
         query_executor.set_tables(schema_tables)
-        SQL, response = query_executor.run(query=inputText)
+        SQL, nl_response = query_executor.run(query=inputText)
 
-        return {"SQL": SQL, "response": response}
+        return {"SQL": SQL, "response": nl_response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -84,8 +84,8 @@ async def process_text(inputText: InputText):
             "password": "<password>",
             "database": "<db_name>"
         })
-        sql, response, = query_executor.run(query=inputText.inputText)
-        return {"SQLQuery": sql, "response": response}
+        sql, nl_response, = query_executor.run(query=inputText.inputText)
+        return {"SQLQuery": sql, "response": nl_response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
