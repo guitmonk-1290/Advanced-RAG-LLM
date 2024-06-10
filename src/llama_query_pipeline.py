@@ -12,7 +12,7 @@ from langchain.callbacks.streaming_stdout import (
     StreamingStdOutCallbackHandler,
 )  # for streaming resposne
 
-from schema_objects import table_schema_objs
+from .schema_objects import table_schema_objs
 from typing import List
 from llama_index.llms.ollama import Ollama
 from llama_index.core.objects import SQLTableNodeMapping, ObjectIndex, SQLTableSchema
@@ -30,12 +30,12 @@ from sqlalchemy import create_engine, MetaData, text
 
 from llama_index.core.schema import TextNode
 from llama_index.core.storage import StorageContext
-from utils import connect_to_DB, execute_query
+from .utils import connect_to_DB, execute_query
 import ollama
 
 
 class QueryExecutor:
-    def __init__(self, db_config):
+    def __init__(self, db_config: dict):
         # Callbacks support token-wise streaming
         self.callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
@@ -78,13 +78,25 @@ class QueryExecutor:
                 "indexes", self.table_node_mapping
             )
 
-        self.obj_retriever = self.obj_index.as_retriever(similarity_top_k=1)
+        self.obj_retriever = self.obj_index.as_retriever(similarity_top_k=4)
         self.sql_connection = connect_to_DB(db_config)
+        self.tables = None
         self.storage_context = None
         self.service_context = None
         self.vector_index_dict = None
 
         self.SQLQuery = ""
+    
+    def get_related_tables(self, query: str) -> List[SQLTableSchema]:
+        """get related tables from vector embeddings"""
+        related_tables = self.obj_retriever.retrieve(query)
+        return related_tables
+
+    def set_tables(self, tables: List[SQLTableSchema]) -> None:
+        self.tables = tables
+    
+    def get_setted_tables(self) -> List[SQLTableSchema]:
+        return self.tables
 
     def index_all_tables(
         self, table_index_dir: str = "table_index_dir"
@@ -231,14 +243,14 @@ class QueryExecutor:
         )
         self.vector_index_dict = self.index_all_tables()
 
-        table_schema_objects = self.obj_retriever.retrieve(query)
+        table_schema_objects = self.tables
         for table in table_schema_objects:
             print(f"[matched_table]: {table.table_name}")
 
         context_str = self.get_table_context_and_rows_str(
             table_schema_objects=table_schema_objects
         )
-        context_str += f"According to this table schema, write a syntactically correct SQL query as mentioned in the following query and do not make up any information. ONLY write the SQL query and nothing else. query: '{query}'"
+        context_str += f"According to this table schema, write a syntactically correct SQL query as mentioned in the following query and do not make up any information. ONLY write the SQL query and nothing else. query: {query}"
         print(f"[LLM_CONTEXT_STR]: {context_str}")
 
         # Firstly, pull the model from ollama by 'ollama pull deepseek-coder'
@@ -299,4 +311,4 @@ SQL result: {sql_res if len(sql_res) else 'There is no such result in the databa
         print(f"[NL_RESPONSE]: {response['message']['content']}")
 
         print(f"EXECUTION FINISHED AT {datetime.datetime.now()}")
-        return sql_parsed, response["message"]["content"], sql_res
+        return sql_parsed, response["message"]["content"]

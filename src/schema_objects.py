@@ -21,4 +21,10 @@ table_schema_objs = [
             context_str="'license_issue_masters' table stores information about licenses including license type, license id, production uat, license invoice, activate date, license status, license amc information.",
         )
     ),
+    (
+        SQLTableSchema(
+            table_name="clients",
+            context_str="'clients' table stores information about a client including client id, client name, client address, client code and status."
+        )
+    ),
 ]  # add a SQLTableSchema for each table

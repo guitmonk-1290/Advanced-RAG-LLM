@@ -39,6 +39,7 @@ def execute_query(connection, query):
         cursor = connection.cursor(dictionary=True)
         cursor.execute(query)
         results = cursor.fetchall()
+        print(f"[RESULTS]: {results}")
 
         # Get column names from cursor description
         columns = [col[0] for col in cursor.description]
