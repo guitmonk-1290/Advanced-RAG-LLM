@@ -35,12 +35,7 @@ import ollama
 
 
 class QueryExecutor:
-<<<<<<< HEAD
     def __init__(self, db_config: dict):
-=======
-
-    def __init__(self, db_config):
->>>>>>> e34d810f1dcf300c275d1a5d5458e595639f1eb3
         # Callbacks support token-wise streaming
         self.callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
@@ -316,8 +311,4 @@ SQL result: {sql_res if len(sql_res) else 'There is no such result in the databa
         print(f"[NL_RESPONSE]: {response['message']['content']}")
 
         print(f"EXECUTION FINISHED AT {datetime.datetime.now()}")
-<<<<<<< HEAD
         return sql_parsed, response["message"]["content"]
-=======
-        return sql_parsed, response["message"]["content"], sql_res
->>>>>>> e34d810f1dcf300c275d1a5d5458e595639f1eb3
