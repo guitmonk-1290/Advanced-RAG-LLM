@@ -9,3 +9,8 @@ This is the Back-end repo for the LLM API in the Advanced-RAG project encorporat
 ```
 pip install -r requirements.txt
 ```
+
+## Run the server
+```
+python main.py
+```
