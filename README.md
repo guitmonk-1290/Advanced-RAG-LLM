@@ -1,10 +1,11 @@
+![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 [![Build](https://github.com/guitmonk-1290/Advanced-RAG-LLM/actions/workflows/devops.yml/badge.svg)](https://github.com/guitmonk-1290/Advanced-RAG-LLM/actions/workflows/devops.yml)
 
 # Advanced-RAG-LLM
 
-This is the Back-end repo for the Advanced-RAG project
+This is the Back-end repo for the LLM API in the Advanced-RAG project
 
-1. Create a python Virtual Environnment `python3 -m venv ~/.venv` or `virtualenv ~/.venv`
-2. Create empty files for requirements, Dockerfile and Makefile
-3. Populate the Makefile
-4. Setup Continous Integration, i.e. check code fot issues like lint errors
+## Installation
+```
+pip install -r requirements.txt
+```
