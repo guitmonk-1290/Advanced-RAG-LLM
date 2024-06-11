@@ -3,7 +3,7 @@
 
 # Advanced-RAG-LLM
 
-This is the Back-end repo for the LLM API in the Advanced-RAG project
+This is the Back-end repo for the LLM API in the Advanced-RAG project encorporating feedback from the user
 
 ## Installation
 ```
