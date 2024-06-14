@@ -3,7 +3,6 @@ import os
 import re
 
 os.environ["HF_HOME"] = "model/"
-os.environ['GOOGLE_API_KEY'] = "AIzaSyCCRihdmqxlTbHyKumDLCD5ponTPjkm6vs"
 
 from pathlib import Path
 from typing import Dict
