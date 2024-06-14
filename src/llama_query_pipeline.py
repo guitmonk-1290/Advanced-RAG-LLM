@@ -3,6 +3,7 @@ import os
 import re
 
 os.environ["HF_HOME"] = "model/"
+os.environ['GOOGLE_API_KEY'] = "AIzaSyCCRihdmqxlTbHyKumDLCD5ponTPjkm6vs"
 
 from pathlib import Path
 from typing import Dict
@@ -14,7 +15,6 @@ from langchain.callbacks.streaming_stdout import (
 
 from .schema_objects import table_schema_objs
 from typing import List
-from llama_index.llms.ollama import Ollama
 from llama_index.core.objects import SQLTableNodeMapping, ObjectIndex, SQLTableSchema
 from llama_index.core import (
     VectorStoreIndex,
@@ -22,7 +22,6 @@ from llama_index.core import (
 from llama_index.core import SQLDatabase
 from llama_index.core import Settings
 from llama_index.core.service_context import ServiceContext
-from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
 import chromadb
@@ -30,12 +29,18 @@ from sqlalchemy import create_engine, MetaData, text
 
 from llama_index.core.schema import TextNode
 from llama_index.core.storage import StorageContext
-from .utils import connect_to_DB, execute_query
+from .utils import connect_to_DB, execute_query, get_fkey_info
 import ollama
 
 
 class QueryExecutor:
-    def __init__(self, db_config: dict):
+    def __init__(
+            self,
+            db_config: dict,
+            llm: str,
+            embedding: str,
+            **kwargs
+    ):
         # Callbacks support token-wise streaming
         self.callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
@@ -48,15 +53,43 @@ class QueryExecutor:
         self.sql_database = SQLDatabase(self.engine, view_support=True)
         # print("[INFO] ENGINE DIALECT: ", self.engine.dialect.name)
 
-        self.llm = Ollama(model="phi3", request_timeout=500000)
+        match llm:
+            case 'openai':
+                from .llm.openai import openai
+                self.llm = openai(model=kwargs.get("openai_llm", "gpt-3.5-turbo"))
+            case 'gemini':
+                from .llm.gemini import gemini
+                self.llm = gemini(model=kwargs.get("gemini_llm", "models/gemini-pro"))
+            case 'ollama':
+                from .llm.local import local_ollama
+                self.llm = local_ollama(model=kwargs.get("ollama_llm", "deepseek-coder"))
+        
+        self.embeddings_model = None
+        
+        match embedding:
+            case 'openai':
+                from .embeddings.openai import openai
+                self.embeddings_model = openai(
+                    model=kwargs.get('openai_embeddings_model', "text-embedding-3-small"),
+                    batch_size=kwargs.get('batch_size', 512)
+                )
+            case 'gemini':
+                from .embeddings.gemini import gemini
+                self.embeddings_model = gemini(
+                    model=kwargs.get('gemini_embeddings_model', 'models/embedding-001'),
+                    batch_size=kwargs.get('batch_size', 512)
+                )
+            case 'ollama':
+                from .embeddings.local import local_ollama
+                self.embeddings_model = local_ollama(
+                    model=kwargs.get('ollama_embeddings_model', 'nomic-embed-text'),
+                    batch_size=kwargs.get('batch_size', 512)
+                )
 
         # Initialize LLM model settings
-        Settings.llm = self.llm
-        Settings.embed_model = OllamaEmbedding(
-            base_url="http://127.0.0.1:11434",
-            model_name="nomic-embed-text",
-            embed_batch_size=512,
-        )
+        Settings.llm = self.llm.getLLM()
+        Settings.embed_model = self.embeddings_model.getModel()
+        # Settings.embed_model = OpenAIEmbedding(embed_batch_size=512)
 
         self.table_node_mapping = SQLTableNodeMapping(self.sql_database)
 
@@ -90,6 +123,7 @@ class QueryExecutor:
     def get_related_tables(self, query: str) -> List[SQLTableSchema]:
         """get related tables from vector embeddings"""
         related_tables = self.obj_retriever.retrieve(query)
+        print("Related tables: ", related_tables)
         return related_tables
 
     def set_tables(self, tables: List[SQLTableSchema]) -> None:
@@ -183,7 +217,7 @@ class QueryExecutor:
                 #     column_info += " NOT NULL"
                 if column.comment:
                     column_info += f" '{column.comment}'"
-                table_info += f"{column_info}, "
+                table_info += f"{column_info}, \n"
             table_info += ")\n"
 
             if table_schema_obj.context_str:
@@ -239,7 +273,7 @@ class QueryExecutor:
     def run(self, query: str):
         print(f"EXECUTION STARTED AT {datetime.datetime.now()}")
         self.service_context = ServiceContext.from_defaults(
-            llm=self.llm, embed_model=Settings.embed_model
+            llm=Settings.llm, embed_model=Settings.embed_model
         )
         self.vector_index_dict = self.index_all_tables()
 
@@ -247,27 +281,43 @@ class QueryExecutor:
         for table in table_schema_objects:
             print(f"[matched_table]: {table.table_name}")
 
-        context_str = self.get_table_context_and_rows_str(
+        context_str = f"""
+### Instructions:
+Your task is to convert a question into a SQL query, given a MySQL database schema.
+Adhere to these rules:
+- **Deliberately go through the question and database schema word by word** to appropriately answer the question
+- **Use Table Aliases** to prevent ambiguity. For example, `SELECT table1.col1, table2.col1 FROM table1 JOIN table2 ON table1.id = table2.id`.
+- When creating a ratio, always cast the numerator as float
+- **Do not make up any information and use only the table schemas provided.
+
+### Input:
+Generate a SQL query that answers the question "{query}".
+This query will run on a database whose schema is represented as follows:
+"""
+
+        context_str += self.get_table_context_and_rows_str(
             table_schema_objects=table_schema_objects
         )
-        context_str += f"According to this table schema, write a syntactically correct SQL query as mentioned in the following query and do not make up any information. ONLY write the SQL query and nothing else. query: {query}"
+
+        context_relations = get_fkey_info(self.sql_connection, self.db_config['database'], self.tables)
+
+        for rel in context_relations:
+            context_str += rel
+
+        context_str += f"""
+\n### Response:
+Based on your instructions, here is the SQL query I have generated to answer the question "{query}":
+```sql
+"""
         print(f"[LLM_CONTEXT_STR]: {context_str}")
 
-        # Firstly, pull the model from ollama by 'ollama pull deepseek-coder'
-        response = ollama.chat(
-            model="deepseek-coder",
-            messages=[{"role": "user", "content": context_str}],
-            stream=False,
-            keep_alive=True,
-        )
+        response = self.llm.infer(context_str)
+        response = str(response).replace("\n", " ").replace('\t', "")
 
-        print(f"[RESPONSE: {response}")
-        sql_parsed = self.parse_response_to_sql(response["message"]["content"])
-        print(f"[LOG] Finished processing at {datetime.datetime.now()}")
-        print(f"[PARSED_SQL]: {sql_parsed}")
+        print("[+] Response: ", response)
 
-        sql_res = execute_query(self.sql_connection, sql_parsed)
-        print(f"[SQL_RES]: {sql_res}")
+        sql_res = execute_query(self.sql_connection, response)
+        print("SQL_RES: ", sql_res)
 
         response_synthesis_prompt_str_system = """
 You are a chatbot that takes an input question about a database and responds to the input question in natural language. 
@@ -285,30 +335,23 @@ AI response: The status of the ticket is '2'.
 Input Question: what is the incident date of ticket with id '4556'
 SQL result: [{"incident_date": "2024-03-05"}]
 AI response: The incident date of the ticket is "2024-03-05"
+
+Answer this question based on the SQL answer and return only a very short single-line chatbot response directly answering the question and NOTHING ELSE.
+Input Question: {query}
+SQL result: {sql_res if len(sql_res) else 'There is no such result in the database'}
 """
 
         response_synthesis_prompt_str_user = f"""
 Answer this question based on the SQL answer and return only a very short single-line chatbot response directly answering the question and NOTHING ELSE.
 Input Question: {query}
 SQL result: {sql_res if len(sql_res) else 'There is no such result in the database'}
+AI response:
         """
 
-        print(f"[prompt]: {response_synthesis_prompt_str_user}")
+        nl_prompt = response_synthesis_prompt_str_system + response_synthesis_prompt_str_user
 
-        # print(f"[NL_RESPONSE_PROMPT]: {response_synthesis_prompt_str}")
+        nl_response = self.llm.infer(nl_prompt)
 
-        response = ollama.chat(
-            model="tinyllama:1.1b-chat",
-            messages=[
-                {"role": "system", "content": response_synthesis_prompt_str_system},
-                {"role": "user", "content": response_synthesis_prompt_str_user},
-            ],
-            stream=False,
-            keep_alive=True,
-        )
+        print("NL_RESPONSE: ", nl_response)
 
-        # response_parsed = self.parse_nl_response(response["message"]["content"])
-        print(f"[NL_RESPONSE]: {response['message']['content']}")
-
-        print(f"EXECUTION FINISHED AT {datetime.datetime.now()}")
-        return sql_parsed, response["message"]["content"]
+        return response, str(nl_response)

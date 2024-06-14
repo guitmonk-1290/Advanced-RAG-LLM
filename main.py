@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List
 from src.llama_query_pipeline import QueryExecutor
 import uvicorn
+import argparse
 
 app = FastAPI()
 
@@ -25,9 +26,30 @@ def get_shared_instance():
         "database": "spectra"
     }
 
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Query Executor")
+    parser.add_argument("--llm", type=str, default="openai", choices=["openai", "gemini", "ollama"],
+                        help="Choose the LLM model service")
+    parser.add_argument("--embeddings", type=str, default="openai", choices=["openai", "gemini", "ollama"],
+                        help="Choose the Embeddings model service")
+    args = parser.parse_args()
+
+    if args.llm is None:
+        args.llm = "openai"
+    if args.embeddings is None:
+        args.embeddings = "openai"
+
+    print(args.embeddings)
+
     cache_key = tuple(db_config.items())  # Create key based on dictionary items
     if cache_key not in _cache:
-        _cache[cache_key] = QueryExecutor(db_config=db_config)
+        _cache[cache_key] = QueryExecutor(
+            db_config=db_config,
+            llm=args.llm,
+            embedding=args.embeddings,
+            ollama_embeddings_model="nomic-embed-text",
+            batch_size=512
+        )
     return _cache[cache_key]
 
 @app.get("/")
