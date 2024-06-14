@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import List
 from src.llama_query_pipeline import QueryExecutor
 import uvicorn
-import argparse
 
 app = FastAPI()
 
@@ -81,22 +80,6 @@ async def response(
         SQL, nl_response = query_executor.run(query=inputText)
 
         return {"SQL": SQL, "response": nl_response}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-# For direct inference without user-feedback
-@app.post("/process-text", response_model=dict, status_code=200)
-async def process_text(inputText: InputText):
-    try:
-        query_executor = QueryExecutor(db_config={
-            "host": "127.0.0.1",
-            "user": "<username>",
-            "password": "<password>",
-            "database": "<db_name>"
-        })
-        sql, nl_response, = query_executor.run(query=inputText.inputText)
-        return {"SQLQuery": sql, "response": nl_response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
