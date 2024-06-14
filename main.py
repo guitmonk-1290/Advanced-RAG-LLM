@@ -26,22 +26,16 @@ def get_shared_instance():
         "database": "spectra"
     }
 
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Query Executor")
-    parser.add_argument("--llm", type=str, default="openai", choices=["openai", "gemini", "ollama"],
-                        help="Choose the LLM model service")
-    parser.add_argument("--embeddings", type=str, default="openai", choices=["openai", "gemini", "ollama"],
-                        help="Choose the Embeddings model service")
-    args = parser.parse_args()
-
-    print(args.embeddings)
+    models_config = {
+        'llm': 'gemini',
+        'embeddings': 'ollama'
+    }
 
     cache_key = tuple(db_config.items())  # Create key based on dictionary items
     if cache_key not in _cache:
         _cache[cache_key] = QueryExecutor(
             db_config=db_config,
-            llm=args.llm or "openai",
-            embedding=args.embeddings or "openai",
+            models_config=models_config,
             ollama_embeddings_model="nomic-embed-text",
             batch_size=512
         )

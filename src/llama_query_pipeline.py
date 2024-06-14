@@ -36,8 +36,7 @@ class QueryExecutor:
     def __init__(
             self,
             db_config: dict,
-            llm: str,
-            embedding: str,
+            models_config: dict,
             **kwargs
     ):
         # Callbacks support token-wise streaming
@@ -52,7 +51,7 @@ class QueryExecutor:
         self.sql_database = SQLDatabase(self.engine, view_support=True)
         # print("[INFO] ENGINE DIALECT: ", self.engine.dialect.name)
 
-        match llm:
+        match models_config['llm']:
             case 'openai':
                 from .llm.openai import openai
                 self.llm = openai(model=kwargs.get("openai_llm", "gpt-3.5-turbo"))
@@ -65,7 +64,7 @@ class QueryExecutor:
         
         self.embeddings_model = None
         
-        match embedding:
+        match models_config['embeddings']:
             case 'openai':
                 from .embeddings.openai import openai
                 self.embeddings_model = openai(
