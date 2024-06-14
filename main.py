@@ -34,19 +34,14 @@ def get_shared_instance():
                         help="Choose the Embeddings model service")
     args = parser.parse_args()
 
-    if args.llm is None:
-        args.llm = "openai"
-    if args.embeddings is None:
-        args.embeddings = "openai"
-
     print(args.embeddings)
 
     cache_key = tuple(db_config.items())  # Create key based on dictionary items
     if cache_key not in _cache:
         _cache[cache_key] = QueryExecutor(
             db_config=db_config,
-            llm=args.llm,
-            embedding=args.embeddings,
+            llm=args.llm or "openai",
+            embedding=args.embeddings or "openai",
             ollama_embeddings_model="nomic-embed-text",
             batch_size=512
         )

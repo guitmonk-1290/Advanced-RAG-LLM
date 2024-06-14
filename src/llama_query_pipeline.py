@@ -30,7 +30,6 @@ from sqlalchemy import create_engine, MetaData, text
 from llama_index.core.schema import TextNode
 from llama_index.core.storage import StorageContext
 from .utils import connect_to_DB, execute_query, get_fkey_info
-import ollama
 
 
 class QueryExecutor:

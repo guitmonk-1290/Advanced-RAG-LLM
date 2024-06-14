@@ -76,23 +76,23 @@ def get_fkey_info(connection, db_name, tables):
         Exception: If an error occurs while executing the query.
     """
     try:
-        query = """
-            SELECT 
-                kcu.TABLE_NAME AS table_name,
-                kcu.COLUMN_NAME AS foreign_key_column,
-                kcu.REFERENCED_TABLE_NAME AS referenced_table,
-                kcu.REFERENCED_COLUMN_NAME AS referenced_column
-            FROM 
-                information_schema.KEY_COLUMN_USAGE AS kcu
-            JOIN 
-                information_schema.TABLE_CONSTRAINTS AS tc 
-                ON kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME 
-                AND kcu.TABLE_NAME = tc.TABLE_NAME
-            WHERE 
-                tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
-                AND tc.CONSTRAINT_NAME = 'sk_fkey'
-                AND kcu.TABLE_SCHEMA = 'spectra'
-                AND kcu.TABLE_NAME IN (%s);
+        query = f"""
+SELECT 
+    kcu.TABLE_NAME AS table_name,
+    kcu.COLUMN_NAME AS foreign_key_column,
+    kcu.REFERENCED_TABLE_NAME AS referenced_table,
+    kcu.REFERENCED_COLUMN_NAME AS referenced_column
+FROM 
+    information_schema.KEY_COLUMN_USAGE AS kcu
+JOIN 
+    information_schema.TABLE_CONSTRAINTS AS tc 
+    ON kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME 
+    AND kcu.TABLE_NAME = tc.TABLE_NAME
+WHERE 
+    tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
+    AND tc.CONSTRAINT_NAME = 'sk_fkey'
+    AND kcu.TABLE_SCHEMA = '{db_name}'
+    AND kcu.TABLE_NAME IN (%s);
         """
 
         tables = [table.table_name for table in tables]
