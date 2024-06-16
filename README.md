@@ -48,4 +48,7 @@ models_config = {
 ```
 
 This code creates the APIs to interact with our choice of LLM service. These APIs then interacts with NodeJS which acts as an interface between oue front-end and the LLM APIs.<br>
-Rest of the NodeJS code is available here: <a href="https://github.com/guitmonk-1290/Advanced-RAG-Node">Advanced-RAG-Node</a>
+<ul>
+<li>Rest of the NodeJS code is available here: <a href="https://github.com/guitmonk-1290/Advanced-RAG-Node">Advanced-RAG-Node</a></li><br>
+<li>The front-end angular code is available here: <a href="https://github.com/guitmonk-1290/Advanced-RAG-angular">Advanced-RAG-angular</a></li>
+</ul>
