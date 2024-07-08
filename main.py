@@ -20,9 +20,9 @@ def get_shared_instance():
     # Later set up the db_config object dynamically
     db_config = {
         "host": "127.0.0.1",
-        "user": "arinxd",
-        "password": "eatdatass",
-        "database": "spectra"
+        "user": "<username>",
+        "password": "<password>",
+        "database": "<dbName>"
     }
 
     models_config = {
