@@ -27,7 +27,7 @@ def get_shared_instance():
 
     models_config = {
         'llm': 'gemini',
-        'embeddings': 'ollama'
+        'embeddings': 'gemini'
     }
 
     cache_key = tuple(db_config.items())  # Create key based on dictionary items

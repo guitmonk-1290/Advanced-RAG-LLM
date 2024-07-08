@@ -6,7 +6,7 @@ table_schema_objs = [
     (
         SQLTableSchema(
             table_name="ticket_managements",
-            context_str="'ticket_managements' table stores information about ticket status, ticket incident date, due date, ticket title, ticket description, creation time, update time.",
+            context_str="'ticket_managements' table stores information about ticket status, ticket incident date, due date, ticket title, ticket description, creation time, update time. Following are the status codes for a ticket: 1 means 'Open', 2 means 'in Progress', 3 means 'on hold', 4 means 'resolved' and 5 means 'closed'",
         )
     ),
     (

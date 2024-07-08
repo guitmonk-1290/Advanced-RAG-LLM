@@ -266,6 +266,12 @@ class QueryExecutor:
         # Get the first line (if it exists)
         first_line = lines[0] if lines else ""
         return first_line
+    
+    def parse_sql(self, response: str) -> str:
+        "Parse SQL statement"
+        response = str(response).replace("\n", " ").replace('\t', "")
+        response = response[:response.find(";") + 1]
+        return response
 
     def run(self, query: str):
         print(f"EXECUTION STARTED AT {datetime.datetime.now()}")
@@ -284,7 +290,6 @@ Your task is to convert a question into a SQL query, given a MySQL database sche
 Adhere to these rules:
 - **Deliberately go through the question and database schema word by word** to appropriately answer the question
 - **Use Table Aliases** to prevent ambiguity. For example, `SELECT table1.col1, table2.col1 FROM table1 JOIN table2 ON table1.id = table2.id`.
-- When creating a ratio, always cast the numerator as float
 - **Do not make up any information and use only the table schemas provided.
 
 ### Input:
@@ -309,7 +314,7 @@ Based on your instructions, here is the SQL query I have generated to answer the
         print(f"[LLM_CONTEXT_STR]: {context_str}")
 
         response = self.llm.infer(context_str)
-        response = str(response).replace("\n", " ").replace('\t', "")
+        response = self.parse_sql(response)
 
         print("[+] Response: ", response)
 
