@@ -12,8 +12,7 @@ jobs:
       - name: Set up Python 3.12.3
         uses: actions/setup-python@v1
         with:
-          python-version: 3.12.3
-          allow-prereleases: true
+          python-version: 3.12.4
       - name: Install dependencies
         run: |
           make install
